@@ -116,6 +116,7 @@ func generateHTML(photos []Photo, outputFile string) error {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="1800">
     <title>Great Lakes Live Photos</title>
     <style>
         * {
@@ -130,42 +131,35 @@ func generateHTML(photos []Photo, outputFile string) error {
             padding: 20px;
         }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #333;
-        }
-
         .masonry {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            grid-auto-flow: dense;
-        }
-
-        @media (max-width: 1200px) {
-            .masonry {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .masonry {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 480px) {
-            .masonry {
-                grid-template-columns: 1fr;
-            }
+            position: relative;
         }
 
         .photo-item {
+            position: absolute;
+            width: calc(25% - 12px);
             background: white;
             border-radius: 8px;
             overflow: hidden;
             will-change: box-shadow;
+        }
+
+        @media (max-width: 1200px) {
+            .photo-item {
+                width: calc(33.333% - 10px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .photo-item {
+                width: calc(50% - 8px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .photo-item {
+                width: 100%;
+            }
         }
 
         .photo-item:hover {
@@ -183,7 +177,6 @@ func generateHTML(photos []Photo, outputFile string) error {
     </style>
 </head>
 <body>
-    <h1>Great Lakes Live Photos</h1>
     <div class="masonry">
         {{range .}}
         <div class="photo-item">
@@ -193,6 +186,53 @@ func generateHTML(photos []Photo, outputFile string) error {
         </div>
         {{end}}
     </div>
+    <script>
+        function layoutMasonry() {
+            const container = document.querySelector('.masonry');
+            const items = Array.from(document.querySelectorAll('.photo-item'));
+            const gap = 15;
+
+            let columnCount = 4;
+            if (window.innerWidth <= 480) columnCount = 1;
+            else if (window.innerWidth <= 768) columnCount = 2;
+            else if (window.innerWidth <= 1200) columnCount = 3;
+
+            const columnHeights = new Array(columnCount).fill(0);
+            const columnPositions = [];
+            for (let i = 0; i < columnCount; i++) {
+                columnPositions.push(i * (100 / columnCount));
+            }
+
+            items.forEach((item, index) => {
+                if (index < items.length) {
+                    const img = item.querySelector('img');
+                    if (img.complete) {
+                        positionItem(item, img);
+                    } else {
+                        img.addEventListener('load', () => positionItem(item, img));
+                    }
+                }
+            });
+
+            function positionItem(item, img) {
+                const minColumnIndex = columnHeights.indexOf(Math.min(...columnHeights));
+                const itemHeight = img.naturalHeight * (item.offsetWidth / img.naturalWidth);
+
+                item.style.left = columnPositions[minColumnIndex] + '%';
+                item.style.top = columnHeights[minColumnIndex] + 'px';
+
+                columnHeights[minColumnIndex] += itemHeight + gap;
+            }
+
+            setTimeout(() => {
+                const maxHeight = Math.max(...columnHeights);
+                container.style.height = maxHeight + 'px';
+            }, 100);
+        }
+
+        window.addEventListener('load', layoutMasonry);
+        window.addEventListener('resize', layoutMasonry);
+    </script>
 </body>
 </html>
 `
