@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
@@ -39,6 +40,9 @@ type Photo struct {
 }
 
 func main() {
+	outputFile := flag.String("out", "index.html", "Output HTML file path")
+	flag.Parse()
+
 	feeds := []string{
 		"https://mastodon.social/@livelakehuron.rss",
 		"https://mastodon.social/@livelakemichigan.rss",
@@ -68,12 +72,12 @@ func main() {
 		return ti.After(tj)
 	})
 
-	if err := generateHTML(allPhotos, "index.html"); err != nil {
+	if err := generateHTML(allPhotos, *outputFile); err != nil {
 		fmt.Fprintf(os.Stderr, "Error generating HTML: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Generated index.html successfully with %d photos\n", len(allPhotos))
+	fmt.Printf("Generated %s successfully with %d photos\n", *outputFile, len(allPhotos))
 }
 
 func fetchPhotos(url string) ([]Photo, error) {
